@@ -4,12 +4,17 @@ import random
 import time
 import src.settings as settings
 
-
 pygame.init()
 
-largura, altura = 1000, 1100
+largura, altura = pygame.display.Info().current_w, pygame.display.Info().current_h
+info_display = pygame.display.Info()
+largura, altura = info_display.current_w, info_display.current_h
 tela = pygame.display.set_mode((largura, altura), pygame.RESIZABLE)
+
 pygame.display.set_caption("peixonauta matemático")
+
+imagem_original_fundo = pygame.image.load("assets/images/fundo.png").convert()
+fundo = pygame.transform.scale(imagem_original_fundo, (largura, altura))
 
 velocidade_inicial = 2
 velocidade_maxima = 8
@@ -56,7 +61,8 @@ velocidades = {
     "rapidao": 11
 }
 
-
+def verificar_clique(pos, rect):
+    return rect.collidepoint(pos)
 
 def criar_inimigo():
     tipo = random.choice(list(imagens_inimigos.keys()))
@@ -81,7 +87,7 @@ def criar_bloco(valor):
     return {
         "x": random.randint(0, largura - 30),
         "y": -30,
-        "vel": random.randint(3, 5),
+        "vel": random.randint(2, 3),
         "valor": valor,
         "ativo": True,
         "rect": pygame.Rect(0, 0, 30, 30)
@@ -147,6 +153,27 @@ while True:
                 
             if morto and evento.key == pygame.K_r:
                 reiniciar_jogo()
+        
+        elif evento.type == pygame.MOUSEBUTTONDOWN and pausado:
+            if verificar_clique(evento.pos, botao_rect):
+                pygame.quit()
+                sys.exit()
+
+   
+
+    for evento in pygame.event.get():
+        if evento.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+
+        if evento.type == pygame.KEYDOWN:
+            if evento.key == pygame.K_F11:
+                modo_tela_cheia = not modo_tela_cheia  # alterna o modo
+                if modo_tela_cheia:
+                    tela = pygame.display.set_mode((largura, altura), pygame.FULLSCREEN)
+                else:
+                    tela = pygame.display.set_mode((largura, altura), pygame.RESIZABLE)
+            
 
     delta_time = clock.get_time() / 1000  # para cálculo por segundo
 
@@ -314,8 +341,12 @@ while True:
     # Desenhar barra de turbo
     barra_largura = 200
     barra_altura = 20
-    barra_x = largura - barra_largura - 10
-    barra_y = 10
+    padding = 10  # margem da borda da tela
+
+    # Garante que não corte mesmo em resoluções menores
+    barra_x = max(padding, largura - barra_largura - padding)
+    barra_y = max(padding + 30, padding + fonte_media.get_height() + 5)  # espaço para o texto acima da barra
+
 
     # Contorno
     pygame.draw.rect(tela, settings.BRANCO, (barra_x, barra_y, barra_largura, barra_altura), 2)
@@ -326,13 +357,30 @@ while True:
 
     # Texto da barra
     turbo_texto = fonte_media.render("Turbo", True, settings.BRANCO)
-    tela.blit(turbo_texto, (barra_x, barra_y - 25))
+    texto_x = barra_x + (barra_largura - turbo_texto.get_width()) // 2
+    texto_y = barra_y - fonte_media.get_height() - 5
+    tela.blit(turbo_texto, (texto_x, texto_y))
 
 
     
     if pausado:
         texto_pausa = fonte_grande.render("JOGO PAUSADO", True, settings.BRANCO)
         tela.blit(texto_pausa, ((largura - texto_pausa.get_width()) // 2, altura // 2))
+
+        # Texto do botão
+        texto_botao = fonte_media.render("Encerrar Jogo", True, settings.PRETO)
+        largura_botao = texto_botao.get_width() + 20
+        altura_botao = texto_botao.get_height() + 10
+
+        # Retângulo do botão
+        botao_x = (largura - largura_botao) // 2
+        botao_y = (altura // 2) + 80
+        botao_rect = pygame.Rect(botao_x, botao_y, largura_botao, altura_botao)
+
+        # Desenha o botão
+        pygame.draw.rect(tela, settings.BRANCO, botao_rect)
+        tela.blit(texto_botao, (botao_x + 10, botao_y + 5))
+
 
 
     if not morto and not pausado:
